@@ -1,0 +1,6 @@
+@PrivacyApi_HostAddress = http://localhost:5234
+
+GET {{PrivacyApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
