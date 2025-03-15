@@ -20,22 +20,22 @@ public class DataContext
     {
         return new SqliteConnection(_configuration.GetConnectionString("Database"));
     }
-    
+
     public async Task Init()
     {
-        string? dbPath = _configuration["Paths:Db"];
+        var dbPath = _configuration["Paths:Db"];
 
         if (File.Exists(dbPath))
             return;
 
-        string? dbInitSql = _configuration["Paths:DbInitSql"];
+        var dbInitSql = _configuration["Paths:DbInitSql"];
 
         if (!File.Exists(dbInitSql))
             throw new FileNotFoundException(dbInitSql);
 
         using var connection = CreateConnection();
 
-        string sql = File.ReadAllText(dbInitSql);
+        var sql = File.ReadAllText(dbInitSql);
 
         await connection.ExecuteAsync(sql);
     }
