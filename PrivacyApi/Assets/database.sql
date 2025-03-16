@@ -1,7 +1,7 @@
 -- Users table stores basic user information and credentials
 CREATE TABLE users
 (
-    user_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id       INTEGER PRIMARY KEY,
     username      TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

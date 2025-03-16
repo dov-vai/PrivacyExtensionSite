@@ -49,4 +49,15 @@ public class UserRepository : IUserRepository
                   """;
         await connection.ExecuteAsync(sql, new { id });
     }
+
+    public async Task<Models.User.User?> GetByUsername(string username)
+    {
+        using var connection = _context.CreateConnection();
+        var sql = """
+                  SELECT *
+                  FROM users
+                  WHERE username = @username
+                  """;
+        return await connection.QuerySingleOrDefaultAsync<Models.User.User?>(sql, new { username });
+    }
 }
