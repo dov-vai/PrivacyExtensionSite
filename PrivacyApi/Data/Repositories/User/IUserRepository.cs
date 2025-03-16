@@ -6,4 +6,5 @@ public interface IUserRepository
     Task Insert(Models.User.User user);
     Task Delete(int id);
     Task<Models.User.User?> GetByUsername(string username);
+    Task Update(Models.User.User user);
 }

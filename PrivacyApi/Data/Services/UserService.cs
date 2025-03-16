@@ -6,12 +6,10 @@ namespace PrivacyApi.Data.Services;
 public class UserService
 {
     private readonly IUserRepository _userRepository;
-    private readonly PasswordService _passwordService;
 
-    public UserService(IUserRepository userRepository, PasswordService passwordService)
+    public UserService(IUserRepository userRepository)
     {
         _userRepository = userRepository;
-        _passwordService = passwordService;
     }
 
     public async Task AddUserAsync(User user)
@@ -28,20 +26,9 @@ public class UserService
     {
         return await _userRepository.GetByUsername(username);
     }
-    
-    public async Task<User> RegisterUserAsync(RegistrationRequest request)
+
+    public async Task UpdateUserAsync(User user)
     {
-        var user = new User
-        {
-            Username = request.Username,
-            PasswordHash = _passwordService.HashPassword(request.Password),
-            CreatedAt = DateTime.UtcNow,
-            LastLogin = DateTime.UtcNow,
-            IsPaid = false
-        };
-        
-        await _userRepository.Insert(user);
-        
-        return user;
+        await _userRepository.Update(user);
     }
 }

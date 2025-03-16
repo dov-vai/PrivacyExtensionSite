@@ -54,10 +54,31 @@ public class UserRepository : IUserRepository
     {
         using var connection = _context.CreateConnection();
         var sql = """
-                  SELECT *
+                  SELECT
+                     user_id as UserId,
+                     username as Username,
+                     password_hash as PasswordHash,
+                     created_at as CreatedAt,
+                     last_login as LastLogin,
+                     paid as IsPaid 
                   FROM users
                   WHERE username = @username
                   """;
         return await connection.QuerySingleOrDefaultAsync<Models.User.User?>(sql, new { username });
+    }
+
+    public async Task Update(Models.User.User user)
+    {
+        using var connection = _context.CreateConnection();
+        var sql = """
+                  UPDATE users
+                  SET
+                    username = @Username, 
+                    password_hash = @PasswordHash,
+                    last_login = @LastLogin,
+                    paid = @IsPaid
+                  WHERE user_id = @UserId
+                  """;
+        await connection.ExecuteAsync(sql, user);
     }
 }

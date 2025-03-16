@@ -1,3 +1,6 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Data.Sqlite;
 using PrivacyApi.Data;
 using PrivacyApi.Data.Models.User;
@@ -11,14 +14,33 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.ExpireTimeSpan = TimeSpan.FromDays(7);
+        options.SlidingExpiration = true;
+        options.LoginPath = "/login";
+        options.LogoutPath = "/logout";
+        options.AccessDeniedPath = "/access-denied";
+    });
+
+builder.Services.AddAuthorization();
+
 builder.Services.AddSingleton<DataContext>();
 
 builder.Services.AddScoped<PasswordService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<AuthService>();
 
 
 var app = builder.Build();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -65,39 +87,126 @@ app.MapPost("/users", async (User user, UserService userService) =>
     .WithName("AddUser")
     .WithOpenApi();
 
-app.MapPost("/register", async (RegistrationRequest request, UserService userService, ILogger<Program> logger) =>
+app.MapGet("/users/me", async (ClaimsPrincipal user, UserService userService) =>
     {
-        if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+        // get the user ID from the authenticated user's claims
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            return Results.BadRequest(new { error = "Invalid user identifier in token" });
+
+        var userInfo = await userService.GetUserAsync(userId);
+
+        if (userInfo == null) return Results.NotFound();
+
+        return Results.Ok(new
+        {
+            userId = userInfo.UserId,
+            username = userInfo.Username,
+            createdAt = userInfo.CreatedAt,
+            lastLogin = userInfo.LastLogin,
+            isPaid = userInfo.IsPaid
+        });
+    })
+    .RequireAuthorization()
+    .WithName("GetCurrentUser")
+    .WithOpenApi();
+
+app.MapPost("/login",
+        async (LoginRequest request, AuthService authService, HttpContext httpContext, ILogger<Program> logger) =>
+        {
+            try
+            {
+                var user = await authService.ValidateUserAsync(request.Username, request.Password);
+
+                // create claims for the user
+                var claims = new List<Claim>
+                {
+                    new(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                    new(ClaimTypes.Name, user.Username),
+                    new("IsPaid", user.IsPaid.ToString())
+                };
+
+                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                var authProperties = new AuthenticationProperties
+                {
+                    IsPersistent = true,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
+                };
+
+                await httpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity),
+                    authProperties);
+
+                return Results.Ok(new
+                {
+                    message = "Login successful",
+                    user = new
+                    {
+                        userId = user.UserId,
+                        username = user.Username,
+                        isPaid = user.IsPaid
+                    }
+                });
+            }
+            catch (AuthenticationException ex)
+            {
+                return Results.Unauthorized();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Unexpected error during registration");
+                return Results.Problem(
+                    statusCode: 500,
+                    title: "Internal Server Error",
+                    detail: "An unexpected error occured"
+                );
+            }
+        })
+    .WithName("Login")
+    .WithOpenApi();
+
+
+app.MapPost("/register", async (RegistrationRequest request, AuthService authService, ILogger<Program> logger) =>
+    {
+        try
+        {
+            var user = await authService.RegisterUserAsync(request);
+
+            return Results.Created($"/users/{user.UserId}", new
+            {
+                userId = user.UserId,
+                username = user.Username
+            });
+        }
+        catch (ArgumentException ex)
+        {
             return Results.BadRequest(new
             {
                 error = "Validation Error",
-                message = "Username and password are required"
+                message = ex.Message
             });
-
-        var existingUser = await userService.GetUserByUsernameAsync(request.Username);
-        if (existingUser != null)
-            return Results.BadRequest(new
+        }
+        catch (UserAlreadyExistsException ex)
+        {
+            return Results.Conflict(new
             {
                 error = "Registration Error",
-                message = "Username already exists"
+                message = ex.Message
             });
-
-        try
-        {
-            var user = await userService.RegisterUserAsync(request);
-            return Results.Created($"/users/{user.UserId}", user);
         }
-        catch (SqliteException e)
+        catch (SqliteException ex)
         {
-            return Results.BadRequest(new 
+            return Results.BadRequest(new
             {
                 error = "Database Error",
-                message = e.Message
+                message = ex.Message
             });
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            logger.LogError(e, "Unexpected error during registration");
+            logger.LogError(ex, "Unexpected error during registration");
             return Results.Problem(
                 statusCode: 500,
                 title: "Internal Server Error",
