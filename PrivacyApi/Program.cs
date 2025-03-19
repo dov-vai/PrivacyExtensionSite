@@ -56,7 +56,9 @@ using (var scope = app.Services.CreateScope())
     await context.Init();
 }
 
-app.MapGet("/users/{id}", async (int id, UserService userService) =>
+var apiGroup = app.MapGroup("/api").WithOpenApi();
+
+apiGroup.MapGet("/users/{id}", async (int id, UserService userService) =>
     {
         var user = await userService.GetUserAsync(id);
 
@@ -64,10 +66,9 @@ app.MapGet("/users/{id}", async (int id, UserService userService) =>
 
         return Results.Ok(user);
     })
-    .WithName("GetUser")
-    .WithOpenApi();
+    .WithName("GetUser");
 
-app.MapPost("/users", async (User user, UserService userService) =>
+apiGroup.MapPost("/users", async (User user, UserService userService) =>
     {
         try
         {
@@ -84,10 +85,9 @@ app.MapPost("/users", async (User user, UserService userService) =>
 
         return Results.Ok();
     })
-    .WithName("AddUser")
-    .WithOpenApi();
+    .WithName("AddUser");
 
-app.MapGet("/users/me", async (ClaimsPrincipal user, UserService userService) =>
+apiGroup.MapGet("/users/me", async (ClaimsPrincipal user, UserService userService) =>
     {
         // get the user ID from the authenticated user's claims
         var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -109,10 +109,9 @@ app.MapGet("/users/me", async (ClaimsPrincipal user, UserService userService) =>
         });
     })
     .RequireAuthorization()
-    .WithName("GetCurrentUser")
-    .WithOpenApi();
+    .WithName("GetCurrentUser");
 
-app.MapPost("/login",
+apiGroup.MapPost("/login",
         async (LoginRequest request, AuthService authService, HttpContext httpContext, ILogger<Program> logger) =>
         {
             try
@@ -164,11 +163,10 @@ app.MapPost("/login",
                 );
             }
         })
-    .WithName("Login")
-    .WithOpenApi();
+    .WithName("Login");
 
 
-app.MapPost("/register", async (RegistrationRequest request, AuthService authService, ILogger<Program> logger) =>
+apiGroup.MapPost("/register", async (RegistrationRequest request, AuthService authService, ILogger<Program> logger) =>
     {
         try
         {
@@ -214,7 +212,6 @@ app.MapPost("/register", async (RegistrationRequest request, AuthService authSer
             );
         }
     })
-    .WithName("RegisterUser")
-    .WithOpenApi();
+    .WithName("RegisterUser");
 
 app.Run();
