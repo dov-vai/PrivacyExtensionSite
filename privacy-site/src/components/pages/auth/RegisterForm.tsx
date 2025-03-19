@@ -5,8 +5,7 @@ import {Eye, EyeOff} from "lucide-react";
 import {Button} from "@/components/ui/button.tsx";
 
 export interface RegisterFormData {
-    name: string;
-    email: string;
+    username: string;
     password: string;
     confirmPassword: string;
 }
@@ -21,8 +20,7 @@ interface RegisterFormProps {
 
 function RegisterForm({onSubmit, loading, showPassword, togglePasswordVisibility}: RegisterFormProps) {
     const [registerForm, setRegisterForm] = useState<RegisterFormData>({
-        name: '',
-        email: '',
+        username: '',
         password: '',
         confirmPassword: '',
     });
@@ -35,25 +33,14 @@ function RegisterForm({onSubmit, loading, showPassword, togglePasswordVisibility
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="register-username">Username</Label>
                 <Input
-                    id="name"
+                    id="register-username"
                     type="text"
-                    placeholder="John Doe"
+                    placeholder="username"
                     required
-                    value={registerForm.name}
-                    onChange={(e) => setRegisterForm({...registerForm, name: e.target.value})}
-                />
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="register-email">Email</Label>
-                <Input
-                    id="register-email"
-                    type="email"
-                    placeholder="you@example.com"
-                    required
-                    value={registerForm.email}
-                    onChange={(e) => setRegisterForm({...registerForm, email: e.target.value})}
+                    value={registerForm.username}
+                    onChange={(e) => setRegisterForm({...registerForm, username: e.target.value})}
                 />
             </div>
             <div className="space-y-2">

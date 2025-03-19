@@ -4,7 +4,7 @@ import {Card, CardContent, CardFooter, CardHeader} from '@/components/ui/card';
 import {Tabs, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {AlertCircle, Shield} from 'lucide-react';
 import {Alert, AlertDescription} from '@/components/ui/alert';
-import {PRODUCT_NAME} from "@/lib/common.ts";
+import {PRODUCT_NAME, API_HOST} from "@/lib/common.ts";
 import LoginForm, {LoginFormData} from "@/components/pages/auth/LoginForm.tsx";
 import RegisterForm, {RegisterFormData} from "@/components/pages/auth/RegisterForm.tsx";
 
@@ -23,17 +23,15 @@ function AuthPage() {
     const handleLogin = async (loginData: LoginFormData) => {
         setError('');
         setLoading(true);
-        console.log(loginData);
 
         try {
-            // const response = await fetch('/api/login', {
-            //   method: 'POST',
-            //   headers: { 'Content-Type': 'application/json' },
-            //   body: JSON.stringify(loginForm),
-            // });
+            const response = await fetch(API_HOST + '/api/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(loginData),
+            });
 
-            // if (!response.ok) throw new Error('Login failed');
-            // const data = await response.json();
+            if (!response.ok) throw new Error('Login failed');
 
             setTimeout(() => {
                 navigate('/dashboard');
@@ -60,14 +58,13 @@ function AuthPage() {
         setLoading(true);
 
         try {
-            // const response = await fetch('/api/register', {
-            //   method: 'POST',
-            //   headers: { 'Content-Type': 'application/json' },
-            //   body: JSON.stringify(registerForm),
-            // });
+            const response = await fetch(API_HOST + '/api/register', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(registerData),
+            });
 
-            // if (!response.ok) throw new Error('Registration failed');
-            // const data = await response.json();
+            if (!response.ok) throw new Error('Registration failed');
 
             setTimeout(() => {
                 navigate('/dashboard');
