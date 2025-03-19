@@ -1,36 +1,29 @@
-import {FormEvent, useState} from 'react';
-import { useNavigate } from 'react-router';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import {useState} from 'react';
+import {Link, Navigate, Route, Routes, useLocation, useNavigate} from 'react-router';
+import {Card, CardContent, CardFooter, CardHeader} from '@/components/ui/card';
+import {Tabs, TabsList, TabsTrigger} from '@/components/ui/tabs';
+import {AlertCircle, Shield} from 'lucide-react';
+import {Alert, AlertDescription} from '@/components/ui/alert';
+import {PRODUCT_NAME} from "@/lib/common.ts";
+import LoginForm, {LoginFormData} from "@/components/pages/auth/LoginForm.tsx";
+import RegisterForm, {RegisterFormData} from "@/components/pages/auth/RegisterForm.tsx";
 
-const AuthPage = () => {
+
+function AuthPage() {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('login');
-    const [showPassword, setShowPassword] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const location = useLocation();
+    const [showPassword, setShowPassword] = useState<boolean>(false);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string>('');
 
-    const [loginForm, setLoginForm] = useState({
-        email: '',
-        password: '',
-    });
-    
-    const [registerForm, setRegisterForm] = useState({
-        name: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
-    });
+    const togglePasswordVisibility = () => {
+        setShowPassword(!showPassword);
+    };
 
-    const handleLoginSubmit = async (e: FormEvent) => {
-        e.preventDefault();
+    const handleLogin = async (loginData: LoginFormData) => {
         setError('');
         setLoading(true);
+        console.log(loginData);
 
         try {
             // const response = await fetch('/api/login', {
@@ -47,7 +40,7 @@ const AuthPage = () => {
                 setLoading(false);
             }, 1000);
         } catch (err: unknown) {
-            if (err instanceof Error){
+            if (err instanceof Error) {
                 setError(err.message);
             } else {
                 setError('Failed to login. Please try again.');
@@ -56,12 +49,10 @@ const AuthPage = () => {
         }
     };
 
-    const handleRegisterSubmit = async (e: FormEvent) => {
-        e.preventDefault();
+    const handleRegister = async (registerData: RegisterFormData) => {
         setError('');
 
-        // Basic validation
-        if (registerForm.password !== registerForm.confirmPassword) {
+        if (registerData.password !== registerData.confirmPassword) {
             setError('Passwords do not match');
             return;
         }
@@ -92,13 +83,15 @@ const AuthPage = () => {
         }
     };
 
+    const isLoginPage = location.pathname === '/auth/login';
+
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="flex justify-center">
-                    <Shield className="h-12 w-12 text-indigo-600" />
+                    <Shield className="h-12 w-12 text-indigo-600"/>
                 </div>
-                <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">PrivacyGuard</h2>
+                <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">{PRODUCT_NAME}</h2>
                 <p className="mt-2 text-center text-sm text-gray-600">
                     Protect your privacy with just a few clicks
                 </p>
@@ -107,154 +100,54 @@ const AuthPage = () => {
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <Card>
                     <CardHeader>
-                        <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab}>
+                        <Tabs value={isLoginPage ? 'login' : 'register'}>
                             <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="login">Login</TabsTrigger>
-                                <TabsTrigger value="register">Register</TabsTrigger>
+                                <TabsTrigger value="login" asChild>
+                                    <Link to="/auth/login">Login</Link>
+                                </TabsTrigger>
+                                <TabsTrigger value="register" asChild>
+                                    <Link to="/auth/register">Register</Link>
+                                </TabsTrigger>
                             </TabsList>
                         </Tabs>
                     </CardHeader>
                     <CardContent>
                         {error && (
                             <Alert variant="destructive" className="mb-4">
-                                <AlertCircle className="h-4 w-4" />
+                                <AlertCircle className="h-4 w-4"/>
                                 <AlertDescription>{error}</AlertDescription>
                             </Alert>
                         )}
 
-                        {activeTab === 'login' ? (
-                            <form onSubmit={handleLoginSubmit} className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="email">Email</Label>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        placeholder="you@example.com"
-                                        required
-                                        value={loginForm.email}
-                                        onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
+                        <Routes>
+                            <Route
+                                path="login"
+                                element={
+                                    <LoginForm
+                                        onSubmit={handleLogin}
+                                        loading={loading}
+                                        showPassword={showPassword}
+                                        togglePasswordVisibility={togglePasswordVisibility}
                                     />
-                                </div>
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <Label htmlFor="password">Password</Label>
-                                        <a href="#" className="text-sm text-indigo-600 hover:text-indigo-500">
-                                            Forgot password?
-                                        </a>
-                                    </div>
-                                    <div className="relative">
-                                        <Input
-                                            id="password"
-                                            type={showPassword ? "text" : "password"}
-                                            placeholder="••••••••"
-                                            required
-                                            value={loginForm.password}
-                                            onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
-                                        />
-                                        <button
-                                            type="button"
-                                            className="absolute inset-y-0 right-0 flex items-center pr-3"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                        >
-                                            {showPassword ? (
-                                                <EyeOff className="h-5 w-5 text-gray-400" />
-                                            ) : (
-                                                <Eye className="h-5 w-5 text-gray-400" />
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                                <Button type="submit" className="w-full" disabled={loading}>
-                                    {loading ? 'Logging in...' : 'Login'}
-                                </Button>
-                            </form>
-                        ) : (
-                            <form onSubmit={handleRegisterSubmit} className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name">Full Name</Label>
-                                    <Input
-                                        id="name"
-                                        type="text"
-                                        placeholder="John Doe"
-                                        required
-                                        value={registerForm.name}
-                                        onChange={(e) => setRegisterForm({...registerForm, name: e.target.value})}
+                                }
+                            />
+                            <Route
+                                path="register"
+                                element={
+                                    <RegisterForm
+                                        onSubmit={handleRegister}
+                                        loading={loading}
+                                        showPassword={showPassword}
+                                        togglePasswordVisibility={togglePasswordVisibility}
                                     />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="register-email">Email</Label>
-                                    <Input
-                                        id="register-email"
-                                        type="email"
-                                        placeholder="you@example.com"
-                                        required
-                                        value={registerForm.email}
-                                        onChange={(e) => setRegisterForm({...registerForm, email: e.target.value})}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="register-password">Password</Label>
-                                    <div className="relative">
-                                        <Input
-                                            id="register-password"
-                                            type={showPassword ? "text" : "password"}
-                                            placeholder="••••••••"
-                                            required
-                                            value={registerForm.password}
-                                            onChange={(e) => setRegisterForm({...registerForm, password: e.target.value})}
-                                        />
-                                        <button
-                                            type="button"
-                                            className="absolute inset-y-0 right-0 flex items-center pr-3"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                        >
-                                            {showPassword ? (
-                                                <EyeOff className="h-5 w-5 text-gray-400" />
-                                            ) : (
-                                                <Eye className="h-5 w-5 text-gray-400" />
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="confirm-password">Confirm Password</Label>
-                                    <Input
-                                        id="confirm-password"
-                                        type="password"
-                                        placeholder="••••••••"
-                                        required
-                                        value={registerForm.confirmPassword}
-                                        onChange={(e) => setRegisterForm({...registerForm, confirmPassword: e.target.value})}
-                                    />
-                                </div>
-                                <div className="flex items-center">
-                                    <input
-                                        id="terms"
-                                        name="terms"
-                                        type="checkbox"
-                                        className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
-                                        required
-                                    />
-                                    <label htmlFor="terms" className="ml-2 block text-sm text-gray-600">
-                                        I agree to the{' '}
-                                        <a href="#" className="text-indigo-600 hover:text-indigo-500">
-                                            Terms of Service
-                                        </a>{' '}
-                                        and{' '}
-                                        <a href="#" className="text-indigo-600 hover:text-indigo-500">
-                                            Privacy Policy
-                                        </a>
-                                    </label>
-                                </div>
-                                <Button type="submit" className="w-full" disabled={loading}>
-                                    {loading ? 'Registering...' : 'Create Account'}
-                                </Button>
-                            </form>
-                        )}
+                                }
+                            />
+                            <Route path="*" element={<Navigate to="login" replace/>}/>
+                        </Routes>
                     </CardContent>
                     <CardFooter className="flex justify-center">
-                        <a
-                            href="/"
+                        <Link
+                            to="/"
                             className="text-sm text-gray-600 hover:text-indigo-600 flex items-center"
                         >
                             <svg
@@ -270,12 +163,12 @@ const AuthPage = () => {
                                 />
                             </svg>
                             Back to home
-                        </a>
+                        </Link>
                     </CardFooter>
                 </Card>
             </div>
         </div>
     );
-};
+}
 
 export default AuthPage;

@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router';
+import {Navigate, Route, Routes} from 'react-router';
 import LandingPage from "@/components/pages/landing/LandingPage.tsx";
 import AuthPage from "@/components/pages/auth/AuthPage.tsx";
 import {ReactNode} from "react";
@@ -12,11 +12,11 @@ const Dashboard = () => {
     );
 };
 
-const ProtectedRoute = ({ children } : {children: ReactNode}) => {
+const ProtectedRoute = ({children}: { children: ReactNode }) => {
     const isAuthenticated = true;
 
     if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/login" replace/>;
     }
 
     return children;
@@ -24,22 +24,19 @@ const ProtectedRoute = ({ children } : {children: ReactNode}) => {
 
 const App = () => {
     return (
-        <Router>
-            <Routes>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/login" element={<AuthPage />} />
-                <Route path="/register" element={<AuthPage />} />
-                <Route
-                    path="/dashboard"
-                    element={
-                        <ProtectedRoute>
-                            <Dashboard />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-        </Router>
+        <Routes>
+            <Route path="/" element={<LandingPage/>}/>
+            <Route path="/auth/*" element={<AuthPage/>}/>
+            <Route
+                path="/dashboard"
+                element={
+                    <ProtectedRoute>
+                        <Dashboard/>
+                    </ProtectedRoute>
+                }
+            />
+            <Route path="*" element={<Navigate to="/" replace/>}/>
+        </Routes>
     );
 };
 
