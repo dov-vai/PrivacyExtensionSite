@@ -33,9 +33,9 @@ public class UserRepository : IUserRepository
         using var connection = _context.CreateConnection();
         var sql = """
                   INSERT INTO users
-                      (user_id, username, password_hash, created_at, last_login, paid)
+                      (username, password_hash, created_at, last_login, paid)
                   VALUES
-                      (@UserId, @Username, @PasswordHash, @CreatedAt, @LastLogin, @IsPaid)
+                      (@Username, @PasswordHash, @CreatedAt, @LastLogin, @IsPaid)
                   """;
         await connection.ExecuteAsync(sql, user);
     }
