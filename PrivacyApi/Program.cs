@@ -39,6 +39,7 @@ builder.Services.AddScoped<AuthService>();
 
 var app = builder.Build();
 
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -213,5 +214,7 @@ apiGroup.MapPost("/register", async (RegistrationRequest request, AuthService au
         }
     })
     .WithName("RegisterUser");
+
+app.MapFallbackToFile("index.html");
 
 app.Run();

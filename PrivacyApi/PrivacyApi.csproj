@@ -4,12 +4,21 @@
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+
+        <SpaRoot>$(ProjectDir)../privacy-site</SpaRoot>
+        <SpaProxyServerUrl>http://localhost:5173</SpaProxyServerUrl>
+        <SpaProxyLaunchCommand>pnpm run dev</SpaProxyLaunchCommand>
     </PropertyGroup>
+
+    <Target Name="NpmBuild" BeforeTargets="Build" Condition="'$(Configuration)' == 'Release'">
+        <Exec Command="cd $(ProjectDir)../privacy-site &amp;&amp; pnpm build" />
+    </Target>
 
     <ItemGroup>
         <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
         <PackageReference Include="Dapper" Version="2.1.66" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.13"/>
+        <PackageReference Include="Microsoft.AspNetCore.SpaProxy" Version="8.0.14" />
         <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.3" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2"/>
     </ItemGroup>
@@ -18,6 +27,10 @@
       <None Update="Assets\database.sql">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="wwwroot\" />
     </ItemGroup>
 
 </Project>

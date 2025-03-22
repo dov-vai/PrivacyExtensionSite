@@ -2,3 +2,4 @@ obj
 .idea
 bin
 database.db
+wwwroot/*
