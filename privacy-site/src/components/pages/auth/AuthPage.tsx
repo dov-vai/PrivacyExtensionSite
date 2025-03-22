@@ -32,7 +32,11 @@ function AuthPage() {
             });
 
             if (!response.ok) throw new Error('Login failed');
-
+            
+            const data = await response.json();
+            
+            localStorage.setItem("token", data.token);
+            
             setTimeout(() => {
                 navigate('/dashboard');
                 setLoading(false);

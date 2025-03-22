@@ -1,0 +1,50 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
+using PrivacyApi.Data.Models.User;
+
+namespace PrivacyApi.Data.Services;
+
+// TODO: add token revoking / logout
+public class JwtService
+{
+    private readonly string _secret;
+    private readonly string _issuer;
+    private readonly string _audience;
+    private readonly int _expirationInDays;
+
+    public JwtService(IConfiguration configuration)
+    {
+        var jwtSettings = configuration.GetSection("JwtSettings");
+        _secret = jwtSettings["Secret"] ?? "YourDefaultSecretKeyHereMakeSureItIsAtLeast32BytesLong";
+        _issuer = jwtSettings["Issuer"] ?? "YourIssuer";
+        _audience = jwtSettings["Audience"] ?? "YourAudience";
+        _expirationInDays = int.Parse(jwtSettings["ExpirationDays"] ?? "7");
+    }
+
+    public string GenerateToken(User user)
+    {
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.ASCII.GetBytes(_secret);
+        
+        var claims = new List<Claim>
+        {
+            new (ClaimTypes.NameIdentifier, user.UserId.ToString())
+        };
+
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(claims),
+            Expires = DateTime.UtcNow.AddDays(_expirationInDays),
+            Issuer = _issuer,
+            Audience = _audience,
+            SigningCredentials = new SigningCredentials(
+                new SymmetricSecurityKey(key), 
+                SecurityAlgorithms.HmacSha256Signature)
+        };
+
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        return tokenHandler.WriteToken(token);
+    }
+}

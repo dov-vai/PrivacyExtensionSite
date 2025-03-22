@@ -1,7 +1,10 @@
 using System.Security.Claims;
+using System.Text;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Data.Sqlite;
+using Microsoft.IdentityModel.Tokens;
 using PrivacyApi.Data;
 using PrivacyApi.Data.Models.User;
 using PrivacyApi.Data.Repositories.User;
@@ -14,17 +17,27 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var key = Encoding.ASCII.GetBytes(jwtSettings["Secret"] ?? "YourDefaultSecretKeyHereMakeSureItIsAtLeast32BytesLong");
+builder.Services.AddAuthentication(options =>
     {
-        options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Strict;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        options.ExpireTimeSpan = TimeSpan.FromDays(7);
-        options.SlidingExpiration = true;
-        options.LoginPath = "/login";
-        options.LogoutPath = "/logout";
-        options.AccessDeniedPath = "/access-denied";
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.RequireHttpsMetadata = true;
+        options.SaveToken = true;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidIssuer = jwtSettings["Issuer"] ?? "YourIssuer",
+            ValidAudience = jwtSettings["Audience"] ?? "YourAudience",
+            ClockSkew = TimeSpan.Zero
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -35,6 +48,7 @@ builder.Services.AddScoped<PasswordService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<JwtService>();
 
 
 var app = builder.Build();
@@ -113,41 +127,20 @@ apiGroup.MapGet("/users/me", async (ClaimsPrincipal user, UserService userServic
     .WithName("GetCurrentUser");
 
 apiGroup.MapPost("/login",
-        async (LoginRequest request, AuthService authService, HttpContext httpContext, ILogger<Program> logger) =>
+        async (LoginRequest request, AuthService authService, JwtService jwtService, ILogger<Program> logger) =>
         {
             try
             {
                 var user = await authService.ValidateUserAsync(request.Username, request.Password);
-
-                // create claims for the user
-                var claims = new List<Claim>
-                {
-                    new(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                    new(ClaimTypes.Name, user.Username),
-                    new("IsPaid", user.IsPaid.ToString())
-                };
-
-                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                var authProperties = new AuthenticationProperties
-                {
-                    IsPersistent = true,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
-                };
-
-                await httpContext.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(claimsIdentity),
-                    authProperties);
+                
+                var token = jwtService.GenerateToken(user);
 
                 return Results.Ok(new
                 {
-                    message = "Login successful",
-                    user = new
-                    {
-                        userId = user.UserId,
-                        username = user.Username,
-                        isPaid = user.IsPaid
-                    }
+                    userId = user.UserId,
+                    username = user.Username,
+                    isPaid = user.IsPaid,
+                    token = token
                 });
             }
             catch (AuthenticationException ex)
@@ -156,11 +149,11 @@ apiGroup.MapPost("/login",
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Unexpected error during registration");
+                logger.LogError(ex, "Unexpected error during login");
                 return Results.Problem(
                     statusCode: 500,
                     title: "Internal Server Error",
-                    detail: "An unexpected error occured"
+                    detail: "An unexpected error occurred"
                 );
             }
         })
