@@ -1,12 +1,12 @@
 using System.Security.Claims;
 using System.Text;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Data.Sqlite;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using PrivacyApi.Data;
 using PrivacyApi.Data.Models.User;
+using PrivacyApi.Data.Repositories.Token;
 using PrivacyApi.Data.Repositories.User;
 using PrivacyApi.Data.Services;
 
@@ -38,6 +38,17 @@ builder.Services.AddAuthentication(options =>
             ValidAudience = jwtSettings["Audience"] ?? "YourAudience",
             ClockSkew = TimeSpan.Zero
         };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var jwtService = context.HttpContext.RequestServices.GetRequiredService<JwtService>();
+                var token = context.SecurityToken as JsonWebToken;
+                var isValid = await jwtService.ValidateTokenAsync(token.EncodedToken);
+                if (!isValid) context.Fail("Token has been revoked");
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -48,6 +59,8 @@ builder.Services.AddScoped<PasswordService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<ITokenRepository, TokenRepository>();
+builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<JwtService>();
 
 
@@ -132,15 +145,15 @@ apiGroup.MapPost("/login",
             try
             {
                 var user = await authService.ValidateUserAsync(request.Username, request.Password);
-                
-                var token = jwtService.GenerateToken(user);
+
+                var token = await jwtService.GenerateToken(user);
 
                 return Results.Ok(new
                 {
                     userId = user.UserId,
                     username = user.Username,
                     isPaid = user.IsPaid,
-                    token = token
+                    token
                 });
             }
             catch (AuthenticationException ex)
@@ -159,6 +172,20 @@ apiGroup.MapPost("/login",
         })
     .WithName("Login");
 
+apiGroup.MapPost("/logout", async (HttpContext httpContext, JwtService jwtService) =>
+    {
+        var authHeader = httpContext.Request.Headers["Authorization"].FirstOrDefault();
+        if (authHeader != null && authHeader.StartsWith("Bearer "))
+        {
+            var token = authHeader.Substring("Bearer ".Length).Trim();
+            await jwtService.RevokeTokenAsync(token);
+            return Results.Ok();
+        }
+
+        return Results.BadRequest();
+    })
+    .RequireAuthorization()
+    .WithName("Logout");
 
 apiGroup.MapPost("/register", async (RegistrationRequest request, AuthService authService, ILogger<Program> logger) =>
     {

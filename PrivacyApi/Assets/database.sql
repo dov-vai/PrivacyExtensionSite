@@ -9,4 +9,14 @@ CREATE TABLE users
     paid          BOOLEAN   DEFAULT 0
 );
 
-CREATE INDEX idx_users_username ON users(username);
+CREATE TABLE tokens
+(
+    token_id INTEGER PRIMARY KEY,
+    user_id  INTEGER NOT NULL UNIQUE,
+    token    TEXT    NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
+
+);
+
+CREATE INDEX idx_users_username ON users (username);
+CREATE INDEX idx_tokens_user_id ON tokens (user_id);
