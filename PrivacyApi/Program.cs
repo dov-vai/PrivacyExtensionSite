@@ -1,14 +1,12 @@
-using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Data.Sqlite;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using PrivacyApi.Data;
-using PrivacyApi.Data.Models.User;
 using PrivacyApi.Data.Repositories.Token;
 using PrivacyApi.Data.Repositories.User;
 using PrivacyApi.Data.Services;
+using PrivacyApi.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -84,156 +82,8 @@ using (var scope = app.Services.CreateScope())
     await context.Init();
 }
 
-var apiGroup = app.MapGroup("/api").WithOpenApi();
-
-apiGroup.MapGet("/users/{id}", async (int id, UserService userService) =>
-    {
-        var user = await userService.GetUserAsync(id);
-
-        if (user == null) return Results.NotFound();
-
-        return Results.Ok(user);
-    })
-    .WithName("GetUser");
-
-apiGroup.MapPost("/users", async (User user, UserService userService) =>
-    {
-        try
-        {
-            await userService.AddUserAsync(user);
-        }
-        catch (SqliteException e)
-        {
-            return Results.BadRequest(new
-            {
-                error = "Database Error",
-                message = e.Message
-            });
-        }
-
-        return Results.Ok();
-    })
-    .WithName("AddUser");
-
-apiGroup.MapGet("/users/me", async (ClaimsPrincipal user, UserService userService) =>
-    {
-        // get the user ID from the authenticated user's claims
-        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
-            return Results.BadRequest(new { error = "Invalid user identifier in token" });
-
-        var userInfo = await userService.GetUserAsync(userId);
-
-        if (userInfo == null) return Results.NotFound();
-
-        return Results.Ok(new
-        {
-            userId = userInfo.UserId,
-            username = userInfo.Username,
-            createdAt = userInfo.CreatedAt,
-            lastLogin = userInfo.LastLogin,
-            isPaid = userInfo.IsPaid
-        });
-    })
-    .RequireAuthorization()
-    .WithName("GetCurrentUser");
-
-apiGroup.MapPost("/login",
-        async (LoginRequest request, AuthService authService, JwtService jwtService, ILogger<Program> logger) =>
-        {
-            try
-            {
-                var user = await authService.ValidateUserAsync(request.Username, request.Password);
-
-                var token = await jwtService.GenerateToken(user);
-
-                return Results.Ok(new
-                {
-                    userId = user.UserId,
-                    username = user.Username,
-                    isPaid = user.IsPaid,
-                    token
-                });
-            }
-            catch (AuthenticationException ex)
-            {
-                return Results.Unauthorized();
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Unexpected error during login");
-                return Results.Problem(
-                    statusCode: 500,
-                    title: "Internal Server Error",
-                    detail: "An unexpected error occurred"
-                );
-            }
-        })
-    .WithName("Login");
-
-apiGroup.MapPost("/logout", async (HttpContext httpContext, JwtService jwtService) =>
-    {
-        var authHeader = httpContext.Request.Headers["Authorization"].FirstOrDefault();
-        if (authHeader != null && authHeader.StartsWith("Bearer "))
-        {
-            var token = authHeader.Substring("Bearer ".Length).Trim();
-            await jwtService.RevokeTokenAsync(token);
-            return Results.Ok();
-        }
-
-        return Results.BadRequest();
-    })
-    .RequireAuthorization()
-    .WithName("Logout");
-
-apiGroup.MapPost("/register", async (RegistrationRequest request, AuthService authService, ILogger<Program> logger) =>
-    {
-        try
-        {
-            var user = await authService.RegisterUserAsync(request);
-
-            return Results.Created($"/users/{user.UserId}", new
-            {
-                userId = user.UserId,
-                username = user.Username
-            });
-        }
-        catch (ArgumentException ex)
-        {
-            return Results.BadRequest(new
-            {
-                error = "Validation Error",
-                message = ex.Message
-            });
-        }
-        catch (UserAlreadyExistsException ex)
-        {
-            return Results.Conflict(new
-            {
-                error = "Registration Error",
-                message = ex.Message
-            });
-        }
-        catch (SqliteException ex)
-        {
-            return Results.BadRequest(new
-            {
-                error = "Database Error",
-                message = ex.Message
-            });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Unexpected error during registration");
-            return Results.Problem(
-                statusCode: 500,
-                title: "Internal Server Error",
-                detail: "An unexpected error occured"
-            );
-        }
-    })
-    .WithName("RegisterUser");
+app.MapAuthEndpoints();
+app.MapProfileEndpoints();
 
 app.MapFallbackToFile("index.html");
 
