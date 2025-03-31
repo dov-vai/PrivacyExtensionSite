@@ -1,0 +1,74 @@
+{
+  "ReverseProxy": {
+    "Routes": {
+      "virustotal-route": {
+        "ClusterId": "virustotal-cluster",
+        "Match": {
+          "Path": "/api/virustotal/{**catch-all}"
+        },
+        "Transforms": [
+          {
+            "PathPattern": "{**catch-all}"
+          },
+          {
+            "RequestHeader": "x-apikey",
+            "Set": "your-virustotal-api-key-placeholder"
+          }
+        ]
+      },
+      "metadefender-route": {
+        "ClusterId": "metadefender-cluster",
+        "Match": {
+          "Path": "/api/metadefender/{**catch-all}"
+        },
+        "Transforms": [
+          {
+            "PathPattern": "{**catch-all}"
+          },
+          {
+            "RequestHeader": "apikey",
+            "Set": "your-metadefender-api-key-placeholder"
+          }
+        ]
+      },
+      "urlscan-route": {
+        "ClusterId": "urlscan-cluster",
+        "Match": {
+          "Path": "/api/urlscan/{**catch-all}"
+        },
+        "Transforms": [
+          {
+            "PathPattern": "{**catch-all}"
+          },
+          {
+            "RequestHeader": "API-Key",
+            "Set": "your-urlscan-api-key-placeholder"
+          }
+        ]
+      }
+    },
+    "Clusters": {
+      "virustotal-cluster": {
+        "Destinations": {
+          "virustotal-destination": {
+            "Address": "https://www.virustotal.com/api/v3/"
+          }
+        }
+      },
+      "metadefender-cluster": {
+        "Destinations": {
+          "metadefender-destination": {
+            "Address": "https://api.metadefender.com/v4/"
+          }
+        }
+      },
+      "urlscan-cluster": {
+        "Destinations": {
+          "urlscan-destination": {
+            "Address": "https://urlscan.io/api/v1/"
+          }
+        }
+      }
+    }
+  }
+}

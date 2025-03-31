@@ -10,6 +10,8 @@ using PrivacyApi.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Configuration.AddJsonFile("yarp.json", optional: false, reloadOnChange: true);
+
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -61,6 +63,8 @@ builder.Services.AddScoped<ITokenRepository, TokenRepository>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<JwtService>();
 
+builder.Services.AddReverseProxy()
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 
 var app = builder.Build();
 
@@ -84,6 +88,7 @@ using (var scope = app.Services.CreateScope())
 
 app.MapAuthEndpoints();
 app.MapProfileEndpoints();
+app.MapReverseProxy();
 
 app.MapFallbackToFile("index.html");
 
