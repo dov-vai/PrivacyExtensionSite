@@ -25,7 +25,7 @@ function AuthPage() {
         setLoading(true);
 
         try {
-            const response = await fetch(API_HOST + '/api/login', {
+            const response = await fetch(API_HOST + '/login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(loginData),
@@ -62,7 +62,7 @@ function AuthPage() {
         setLoading(true);
 
         try {
-            const response = await fetch(API_HOST + '/api/register', {
+            const response = await fetch(API_HOST + '/register', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(registerData),
@@ -70,10 +70,8 @@ function AuthPage() {
 
             if (!response.ok) throw new Error('Registration failed');
 
-            setTimeout(() => {
-                navigate('/dashboard');
-                setLoading(false);
-            }, 1000);
+            navigate('/auth/login');
+            setLoading(false);
         } catch (err: unknown) {
             if (err instanceof Error) {
                 setError(err.message);
