@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using PrivacyApi.Data.Models.User;
 using PrivacyApi.Data.Services;
 
 namespace PrivacyApi.Endpoints;
@@ -12,6 +13,10 @@ public static class ProfileEndpoints
         apiGroup.MapGet("/users/me", GetCurrentUser)
             .RequireAuthorization()
             .WithName("GetCurrentUser");
+
+        apiGroup.MapPost("/users/delete", DeleteCurrentUser)
+            .RequireAuthorization()
+            .WithName("DeleteCurrentUser");
 
         return app;
     }
@@ -36,5 +41,31 @@ public static class ProfileEndpoints
             lastLogin = userInfo.LastLogin,
             isPaid = userInfo.IsPaid
         });
+    }
+
+    private static async Task<IResult> DeleteCurrentUser(DeletionRequest request, ClaimsPrincipal user,
+        UserService userService, AuthService authService)
+    {
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            return Results.BadRequest(new { error = "Invalid user identifier in token" });
+
+        var userInfo = await userService.GetUserAsync(userId);
+
+        if (userInfo == null) return Results.NotFound();
+
+        try
+        {
+            await authService.ValidateUserAsync(userInfo.Username, request.Password);
+        }
+        catch (AuthenticationException ex)
+        {
+            return Results.BadRequest(new { error = "Wrong password" });
+        }
+
+        await userService.DeleteUserAsync(userInfo);
+
+        return Results.Ok();
     }
 }

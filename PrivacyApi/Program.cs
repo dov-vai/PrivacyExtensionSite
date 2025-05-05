@@ -10,7 +10,7 @@ using PrivacyApi.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration.AddJsonFile("yarp.json", optional: false, reloadOnChange: true);
+builder.Configuration.AddJsonFile("yarp.json", false, true);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
