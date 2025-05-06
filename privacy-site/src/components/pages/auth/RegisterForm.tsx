@@ -5,7 +5,7 @@ import {Eye, EyeOff} from "lucide-react";
 import {Button} from "@/components/ui/button.tsx";
 
 export interface RegisterFormData {
-    username: string;
+    email: string;
     password: string;
     confirmPassword: string;
 }
@@ -20,7 +20,7 @@ interface RegisterFormProps {
 
 function RegisterForm({onSubmit, loading, showPassword, togglePasswordVisibility}: RegisterFormProps) {
     const [registerForm, setRegisterForm] = useState<RegisterFormData>({
-        username: '',
+        email: '',
         password: '',
         confirmPassword: '',
     });
@@ -33,14 +33,14 @@ function RegisterForm({onSubmit, loading, showPassword, togglePasswordVisibility
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-                <Label htmlFor="register-username">Username</Label>
+                <Label htmlFor="register-email">Email</Label>
                 <Input
-                    id="register-username"
-                    type="text"
-                    placeholder="username"
+                    id="register-email"
+                    type="email"
+                    placeholder="email"
                     required
-                    value={registerForm.username}
-                    onChange={(e) => setRegisterForm({...registerForm, username: e.target.value})}
+                    value={registerForm.email}
+                    onChange={(e) => setRegisterForm({...registerForm, email: e.target.value})}
                 />
             </div>
             <div className="space-y-2">

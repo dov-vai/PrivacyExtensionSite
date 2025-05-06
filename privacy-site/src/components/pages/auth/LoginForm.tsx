@@ -5,7 +5,7 @@ import {Label} from '@/components/ui/label';
 import {Eye, EyeOff} from "lucide-react";
 
 export interface LoginFormData {
-    username: string;
+    email: string;
     password: string;
 }
 
@@ -18,7 +18,7 @@ interface LoginFormProps {
 
 function LoginForm({onSubmit, loading, showPassword, togglePasswordVisibility}: LoginFormProps) {
     const [loginForm, setLoginForm] = useState<LoginFormData>({
-        username: '',
+        email: '',
         password: '',
     });
 
@@ -30,14 +30,14 @@ function LoginForm({onSubmit, loading, showPassword, togglePasswordVisibility}: 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
-                    id="username"
-                    type="text"
-                    placeholder="username"
+                    id="email"
+                    type="email"
+                    placeholder="email"
                     required
-                    value={loginForm.username}
-                    onChange={(e) => setLoginForm({...loginForm, username: e.target.value})}
+                    value={loginForm.email}
+                    onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
                 />
             </div>
             <div className="space-y-2">
