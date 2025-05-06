@@ -63,6 +63,11 @@ builder.Services.AddScoped<ITokenRepository, TokenRepository>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<JwtService>();
 
+builder.Services.AddHttpClient<EmailService>();
+builder.Services.AddSingleton<EmailService>();
+
+builder.Services.AddSingleton<VerificationService>();
+
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 

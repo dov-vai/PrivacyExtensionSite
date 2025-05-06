@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using PrivacyApi.Data.Models.User;
 using PrivacyApi.Data.Services;
@@ -20,6 +22,13 @@ public static class AuthEndpoints
         apiGroup.MapPost("/register", Register)
             .WithName("RegisterUser");
 
+        apiGroup.MapGet("/verify", Verify)
+            .WithName("VerifyUser");
+
+        apiGroup.MapGet("/resend-verification", ResendVerification)
+            .RequireAuthorization()
+            .WithName("ResendVerification");
+
         return app;
     }
 
@@ -28,15 +37,16 @@ public static class AuthEndpoints
     {
         try
         {
-            var user = await authService.ValidateUserAsync(request.Username, request.Password);
+            var user = await authService.ValidateUserAsync(request.Email, request.Password);
 
             var token = await jwtService.GenerateToken(user);
 
             return Results.Ok(new
             {
                 userId = user.UserId,
-                username = user.Username,
+                email = user.Email,
                 isPaid = user.IsPaid,
+                user.Verified,
                 token
             });
         }
@@ -78,7 +88,7 @@ public static class AuthEndpoints
             return Results.Created($"/users/{user.UserId}", new
             {
                 userId = user.UserId,
-                username = user.Username
+                email = user.Email
             });
         }
         catch (ArgumentException ex)
@@ -114,5 +124,45 @@ public static class AuthEndpoints
                 detail: "An unexpected error occured"
             );
         }
+    }
+
+    private static async Task<IResult> Verify([FromQuery(Name = "token")] string token,
+        VerificationService verificationService, UserService userService)
+    {
+        var verification = verificationService.VerifyToken(token);
+
+        if (verification == null) return Results.BadRequest(new { error = "Token invalid or expired" });
+
+        var user = await userService.GetUserByEmailAsync(verification.Email);
+
+        if (user == null) return Results.NotFound();
+
+        user.Verified = true;
+
+        await userService.UpdateUserAsync(user);
+
+        return Results.Ok(new { message = "Verified succesfully" });
+    }
+
+    private static async Task<IResult> ResendVerification(ClaimsPrincipal user, UserService userService,
+        VerificationService verificationService)
+    {
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            return Results.BadRequest(new { error = "Invalid user identifier in token" });
+
+        var userInfo = await userService.GetUserAsync(userId);
+
+        if (userInfo == null) return Results.NotFound();
+
+        if (userInfo.Verified) return Results.BadRequest(new { error = "Verified already" });
+
+        if (verificationService.VerificationInProgress(userInfo.Email))
+            return Results.BadRequest(new { error = "Email already sent. Try again in 15 minutes." });
+
+        await verificationService.SendVerificationEmail(userInfo.Email);
+
+        return Results.Ok();
     }
 }

@@ -17,10 +17,11 @@ public class UserRepository : IUserRepository
         var sql = """
                   SELECT
                     user_id as UserId,
-                    username as Username,
+                    email as Email,
                     password_hash as PasswordHash,
                     created_at as CreatedAt,
                     last_login as LastLogin,
+                    verified as Verified,
                     paid as IsPaid
                   FROM users
                   WHERE user_id = @id
@@ -33,9 +34,9 @@ public class UserRepository : IUserRepository
         using var connection = _context.CreateConnection();
         var sql = """
                   INSERT INTO users
-                      (username, password_hash, created_at, last_login, paid)
+                      (email, password_hash, created_at, last_login, verified, paid)
                   VALUES
-                      (@Username, @PasswordHash, @CreatedAt, @LastLogin, @IsPaid)
+                      (@Email, @PasswordHash, @CreatedAt, @LastLogin, @Verified, @IsPaid)
                   """;
         await connection.ExecuteAsync(sql, user);
     }
@@ -50,21 +51,22 @@ public class UserRepository : IUserRepository
         await connection.ExecuteAsync(sql, new { id });
     }
 
-    public async Task<Models.User.User?> GetByUsername(string username)
+    public async Task<Models.User.User?> GetByEmail(string email)
     {
         using var connection = _context.CreateConnection();
         var sql = """
                   SELECT
                      user_id as UserId,
-                     username as Username,
+                     email as Email,
                      password_hash as PasswordHash,
                      created_at as CreatedAt,
                      last_login as LastLogin,
+                     verified as Verified,
                      paid as IsPaid 
                   FROM users
-                  WHERE username = @username
+                  WHERE email = @email
                   """;
-        return await connection.QuerySingleOrDefaultAsync<Models.User.User?>(sql, new { username });
+        return await connection.QuerySingleOrDefaultAsync<Models.User.User?>(sql, new { email });
     }
 
     public async Task Update(Models.User.User user)
@@ -73,11 +75,12 @@ public class UserRepository : IUserRepository
         var sql = """
                   UPDATE users
                   SET
-                    username = @Username, 
+                    email = @Email, 
                     password_hash = @PasswordHash,
                     last_login = @LastLogin,
+                    verified = @Verified,
                     paid = @IsPaid
-                  WHERE user_id = @UserId
+                  WHERE email = @Email
                   """;
         await connection.ExecuteAsync(sql, user);
     }

@@ -36,7 +36,7 @@ public static class ProfileEndpoints
         return Results.Ok(new
         {
             userId = userInfo.UserId,
-            username = userInfo.Username,
+            email = userInfo.Email,
             createdAt = userInfo.CreatedAt,
             lastLogin = userInfo.LastLogin,
             isPaid = userInfo.IsPaid
@@ -57,7 +57,7 @@ public static class ProfileEndpoints
 
         try
         {
-            await authService.ValidateUserAsync(userInfo.Username, request.Password);
+            await authService.ValidateUserAsync(userInfo.Email, request.Password);
         }
         catch (AuthenticationException ex)
         {

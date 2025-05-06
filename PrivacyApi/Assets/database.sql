@@ -2,10 +2,11 @@
 CREATE TABLE users
 (
     user_id       INTEGER PRIMARY KEY,
-    username      TEXT NOT NULL UNIQUE,
+    email         TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login    TIMESTAMP,
+    verified      BOOLEAN   DEFAULT 0,
     paid          BOOLEAN   DEFAULT 0
 );
 
@@ -18,5 +19,5 @@ CREATE TABLE tokens
 
 );
 
-CREATE INDEX idx_users_username ON users (username);
+CREATE INDEX idx_users_email ON users (email);
 CREATE INDEX idx_tokens_user_id ON tokens (user_id);
