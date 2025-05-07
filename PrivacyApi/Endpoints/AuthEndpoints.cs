@@ -141,7 +141,7 @@ public static class AuthEndpoints
 
         await userService.UpdateUserAsync(user);
 
-        return Results.Ok(new { message = "Verified succesfully" });
+        return Results.Ok(new { message = "Verified successfully" });
     }
 
     private static async Task<IResult> ResendVerification(ClaimsPrincipal user, UserService userService,

@@ -39,6 +39,7 @@ public static class ProfileEndpoints
             email = userInfo.Email,
             createdAt = userInfo.CreatedAt,
             lastLogin = userInfo.LastLogin,
+            verified = userInfo.Verified,
             isPaid = userInfo.IsPaid
         });
     }
