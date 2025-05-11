@@ -1,173 +1,61 @@
-import {useState} from 'react';
-import {Link, Navigate, Route, Routes, useLocation, useNavigate} from 'react-router';
-import {Card, CardContent, CardFooter, CardHeader} from '@/components/ui/card';
+import {useEffect, useState} from 'react';
 import {Tabs, TabsList, TabsTrigger} from '@/components/ui/tabs';
-import {AlertCircle, Shield} from 'lucide-react';
-import {Alert, AlertDescription} from '@/components/ui/alert';
-import {PRODUCT_NAME, API_HOST} from "@/lib/common.ts";
-import LoginForm, {LoginFormData} from "@/components/pages/auth/LoginForm.tsx";
-import RegisterForm, {RegisterFormData} from "@/components/pages/auth/RegisterForm.tsx";
+import {LoginForm} from './LoginForm';
+import {Route, Routes, useLocation, useNavigate} from "react-router";
+import {RegisterForm} from "@/components/pages/auth/RegisterForm.tsx";
 
-
-function AuthPage() {
-    const navigate = useNavigate();
+export default function AuthPage() {
     const location = useLocation();
-    const [showPassword, setShowPassword] = useState<boolean>(false);
-    const [loading, setLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string>('');
+    const [currentTab, setCurrentTab] = useState('login');
+    const navigate = useNavigate();
 
-    const togglePasswordVisibility = () => {
-        setShowPassword(!showPassword);
-    };
-
-    const handleLogin = async (loginData: LoginFormData) => {
-        setError('');
-        setLoading(true);
-
-        try {
-            const response = await fetch(API_HOST + '/login', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(loginData),
-            });
-
-            if (!response.ok) throw new Error('Login failed');
-            
-            const data = await response.json();
-            
-            localStorage.setItem("token", data.token);
-            
-            setTimeout(() => {
-                navigate('/dashboard');
-                setLoading(false);
-            }, 1000);
-        } catch (err: unknown) {
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError('Failed to login. Please try again.');
-            }
-            setLoading(false);
-        }
-    };
-
-    const handleRegister = async (registerData: RegisterFormData) => {
-        setError('');
-
-        if (registerData.password !== registerData.confirmPassword) {
-            setError('Passwords do not match');
-            return;
-        }
-
-        setLoading(true);
-
-        try {
-            const response = await fetch(API_HOST + '/register', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(registerData),
-            });
-
-            if (!response.ok) throw new Error('Registration failed');
-
-            navigate('/auth/login');
-            setLoading(false);
-        } catch (err: unknown) {
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError('Failed to register. Please try again.');
-            }
-            setLoading(false);
-        }
-    };
-
-    const isLoginPage = location.pathname === '/auth/login';
+    useEffect(() => {
+        setCurrentTab(location.pathname === '/auth/register' ? 'register' : 'login');
+    }, [location])
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="w-full min-h-screen bg-[#0f172a] text-[#f8fafc] font-sans p-8">
+            <div className="max-w-md mx-auto space-y-8">
                 <div className="flex justify-center">
-                    <Shield className="h-12 w-12 text-indigo-600"/>
+                    <div className="flex items-center">
+                        <img src="/logo.png" className="h-8 w-8 text-[#0ea5e9] mr-2" alt="Logo"/>
+                        <span className="text-xl font-bold">FalconFort</span>
+                    </div>
                 </div>
-                <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">{PRODUCT_NAME}</h2>
-                <p className="mt-2 text-center text-sm text-gray-600">
-                    Protect your privacy with just a few clicks
-                </p>
-            </div>
 
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <Card>
-                    <CardHeader>
-                        <Tabs value={isLoginPage ? 'login' : 'register'}>
-                            <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="login" asChild>
-                                    <Link to="/auth/login">Login</Link>
-                                </TabsTrigger>
-                                <TabsTrigger value="register" asChild>
-                                    <Link to="/auth/register">Register</Link>
-                                </TabsTrigger>
-                            </TabsList>
-                        </Tabs>
-                    </CardHeader>
-                    <CardContent>
-                        {error && (
-                            <Alert variant="destructive" className="mb-4">
-                                <AlertCircle className="h-4 w-4"/>
-                                <AlertDescription>{error}</AlertDescription>
-                            </Alert>
-                        )}
-
-                        <Routes>
-                            <Route
-                                path="login"
-                                element={
-                                    <LoginForm
-                                        onSubmit={handleLogin}
-                                        loading={loading}
-                                        showPassword={showPassword}
-                                        togglePasswordVisibility={togglePasswordVisibility}
-                                    />
-                                }
-                            />
-                            <Route
-                                path="register"
-                                element={
-                                    <RegisterForm
-                                        onSubmit={handleRegister}
-                                        loading={loading}
-                                        showPassword={showPassword}
-                                        togglePasswordVisibility={togglePasswordVisibility}
-                                    />
-                                }
-                            />
-                            <Route path="*" element={<Navigate to="login" replace/>}/>
-                        </Routes>
-                    </CardContent>
-                    <CardFooter className="flex justify-center">
-                        <Link
-                            to="/"
-                            className="text-sm text-gray-600 hover:text-indigo-600 flex items-center"
+                <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
+                    <TabsList className="grid grid-cols-2 mb-8 bg-[#334155] mx-auto">
+                        <TabsTrigger
+                            value="login"
+                            className="text-[#cbd5e1] cursor-pointer data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#0ea5e9] data-[state=active]:to-[#2dd4bf] data-[state=active]:text-white"
+                            onClick={() => navigate("/auth/login")}
                         >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-4 w-4 mr-1"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                            >
-                                <path
-                                    fillRule="evenodd"
-                                    d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
-                                    clipRule="evenodd"
-                                />
-                            </svg>
-                            Back to home
-                        </Link>
-                    </CardFooter>
-                </Card>
+                            Login
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="register"
+                            className="text-[#cbd5e1] cursor-pointer data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#0ea5e9] data-[state=active]:to-[#2dd4bf] data-[state=active]:text-white"
+                            onClick={() => navigate("/auth/register")}
+                        >
+                            Register
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <Routes>
+                        <Route
+                            path="register"
+                            element={<RegisterForm/>}
+                        />
+                        <Route
+                            path="login/:registered?"
+                            element={<LoginForm/>}
+                        />
+                        <Route
+                            path="*"
+                            element={<LoginForm/>}/>
+                    </Routes>
+                </Tabs>
             </div>
         </div>
     );
 }
-
-export default AuthPage;
