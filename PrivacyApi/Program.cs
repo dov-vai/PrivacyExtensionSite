@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -51,7 +53,64 @@ builder.Services.AddAuthentication(options =>
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("PaidOnly", policy =>
+    {
+        policy.RequireAuthenticatedUser()
+            .RequireRole("Paid");
+    });
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    
+    options.AddPolicy<string>("FreeLimit", httpContext =>
+    {
+        var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString();
+
+        if (string.IsNullOrEmpty(ipAddress))
+            return RateLimitPartition.GetFixedWindowLimiter("unknown",
+                partition => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 1,
+                    QueueLimit = 0,
+                    AutoReplenishment = false,
+                });
+
+        var user = httpContext.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            if (user.HasClaim(ClaimTypes.Role, "Paid"))
+            {
+                return RateLimitPartition.GetNoLimiter(ipAddress);
+            }
+
+            var userId = user.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value;
+
+            return RateLimitPartition.GetFixedWindowLimiter(userId,
+                partition => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 500,
+                    Window = TimeSpan.FromDays(1),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                });
+        }
+            
+
+        return RateLimitPartition.GetFixedWindowLimiter(ipAddress,
+            partition => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 500,
+                Window = TimeSpan.FromDays(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
+});
 
 builder.Services.AddSingleton<DataContext>();
 
@@ -76,6 +135,7 @@ var app = builder.Build();
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

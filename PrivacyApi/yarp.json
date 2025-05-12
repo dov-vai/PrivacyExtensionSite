@@ -3,6 +3,7 @@
     "Routes": {
       "virustotal-route": {
         "ClusterId": "virustotal-cluster",
+        "RateLimiterPolicy": "FreeLimit",
         "Match": {
           "Path": "/api/virustotal/{**catch-all}"
         },
@@ -18,6 +19,7 @@
       },
       "metadefender-route": {
         "ClusterId": "metadefender-cluster",
+        "AuthorizationPolicy": "PaidOnly",
         "Match": {
           "Path": "/api/metadefender/{**catch-all}"
         },
@@ -33,6 +35,7 @@
       },
       "urlscan-route": {
         "ClusterId": "urlscan-cluster",
+        "RateLimiterPolicy": "FreeLimit",
         "Match": {
           "Path": "/api/urlscan/{**catch-all}"
         },
@@ -48,6 +51,7 @@
       },
       "email-scan-route": {
         "ClusterId": "email-scan-cluster",
+        "AuthorizationPolicy": "PaidOnly",
         "Match": {
           "Path": "/api/email-scan/{**catch-all}"
         },

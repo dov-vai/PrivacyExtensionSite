@@ -33,7 +33,8 @@ public class JwtService
 
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, user.UserId.ToString())
+            new(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+            new(ClaimTypes.Role, user.IsPaid ? "Paid" : "Free")
         };
 
         var tokenDescriptor = new SecurityTokenDescriptor
