@@ -9,6 +9,8 @@ using PrivacyApi.Data.Repositories.Token;
 using PrivacyApi.Data.Repositories.User;
 using PrivacyApi.Data.Services;
 using PrivacyApi.Endpoints;
+using Stripe;
+using TokenService = PrivacyApi.Data.Services.TokenService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +20,8 @@ builder.Configuration.AddJsonFile("yarp.json", false, true);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+StripeConfiguration.ApiKey = builder.Configuration.GetSection("Stripe")["ApiKey"];
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Secret"] ?? "YourDefaultSecretKeyHereMakeSureItIsAtLeast32BytesLong");
@@ -65,7 +69,7 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    
+
     options.AddPolicy<string>("FreeLimit", httpContext =>
     {
         var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString();
@@ -76,17 +80,14 @@ builder.Services.AddRateLimiter(options =>
                 {
                     PermitLimit = 1,
                     QueueLimit = 0,
-                    AutoReplenishment = false,
+                    AutoReplenishment = false
                 });
 
         var user = httpContext.User;
 
         if (user.Identity?.IsAuthenticated == true)
         {
-            if (user.HasClaim(ClaimTypes.Role, "Paid"))
-            {
-                return RateLimitPartition.GetNoLimiter(ipAddress);
-            }
+            if (user.HasClaim(ClaimTypes.Role, "Paid")) return RateLimitPartition.GetNoLimiter(ipAddress);
 
             var userId = user.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value;
 
@@ -99,7 +100,7 @@ builder.Services.AddRateLimiter(options =>
                     AutoReplenishment = true
                 });
         }
-            
+
 
         return RateLimitPartition.GetFixedWindowLimiter(ipAddress,
             partition => new FixedWindowRateLimiterOptions
@@ -153,6 +154,7 @@ using (var scope = app.Services.CreateScope())
 
 app.MapAuthEndpoints();
 app.MapProfileEndpoints();
+app.MapPaymentEndpoints();
 app.MapReverseProxy();
 
 app.MapFallbackToFile("index.html");
