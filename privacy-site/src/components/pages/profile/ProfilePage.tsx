@@ -72,9 +72,11 @@ export function ProfilePage() {
                                 className="bg-gradient-to-r from-[#0ea5e9]/10 to-[#2dd4bf]/10 text-[#0ea5e9] border-[#0ea5e9]/30">
                                 {user?.isPaid ? "Pro" : "Free"} Plan
                             </Badge>
-                            {user?.isPaid && (
+                            {!user?.isPaid && (
                                 <Badge
-                                    className="bg-gradient-to-r from-[#0ea5e9]/10 to-[#2dd4bf]/10 text-[#0ea5e9] border-[#0ea5e9]/30">
+                                    className="ml-2 cursor-pointer bg-gradient-to-r from-[#0ea5e9] to-[#2dd4bf]"
+                                    onClick={() => navigate("/checkout")}
+                                >
                                     Upgrade to Pro
                                 </Badge>
                             )}

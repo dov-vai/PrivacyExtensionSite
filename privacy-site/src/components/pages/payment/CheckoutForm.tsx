@@ -2,7 +2,8 @@ import {useCallback, useEffect, useState} from "react";
 import {EmbeddedCheckout, EmbeddedCheckoutProvider} from "@stripe/react-stripe-js";
 import {API_HOST, STRIPE_KEY} from "@/lib/common.ts";
 import {loadStripe} from "@stripe/stripe-js";
-import {useLocation, useNavigate} from "react-router";
+import {Link, useLocation, useNavigate} from "react-router";
+import {MoveLeft} from "lucide-react";
 
 const stripePromise = loadStripe(STRIPE_KEY);
 
@@ -75,20 +76,34 @@ function CheckoutForm() {
             .then((data) => data.clientSecret);
     }, []);
 
-    const options = {fetchClientSecret};
-
-    if (isLoading) {
-        return <div>Loading...</div>;
-    }
-
     return (
-        <div id="checkout">
-            <EmbeddedCheckoutProvider
-                stripe={stripePromise}
-                options={options}
-            >
-                <EmbeddedCheckout/>
-            </EmbeddedCheckoutProvider>
+        <div className="w-full min-h-screen bg-[#0f172a] text-[#f8fafc] font-sans p-8">
+            <div className="max-w-md mx-auto space-y-12">
+                <div className="relative flex justify-center items-center mt-8 mb-12">
+                    <div className="absolute left-0">
+                        <Link to="/">
+                            <MoveLeft className="text-[#cbd5e1] h-6 w-6"/>
+                        </Link>
+                    </div>
+                    <div className="flex items-center">
+                        <img src="/logo.png" className="h-8 w-8 text-[#0ea5e9] mr-2" alt="Logo"/>
+                        <span className="text-xl font-bold">FalconFort</span>
+                    </div>
+                </div>
+            </div>
+
+            {!isLoading && (
+                <div id="checkout" className="mt-8 mb-16">
+                    <EmbeddedCheckoutProvider
+                        stripe={stripePromise}
+                        options={{
+                            fetchClientSecret,
+                        }}
+                    >
+                        <EmbeddedCheckout/>
+                    </EmbeddedCheckoutProvider>
+                </div>
+            )}
         </div>
     )
 }
