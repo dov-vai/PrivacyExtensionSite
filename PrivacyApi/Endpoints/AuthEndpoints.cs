@@ -25,20 +25,26 @@ public static class AuthEndpoints
         apiGroup.MapGet("/verify", Verify)
             .WithName("VerifyUser");
 
-        apiGroup.MapGet("/resend-verification", ResendVerification)
-            .RequireAuthorization()
-            .WithName("ResendVerification");
-
         return app;
     }
 
-    private static async Task<IResult> Login(LoginRequest request, AuthService authService, JwtService jwtService,
+    private static async Task<IResult> Login(LoginRequest request, AuthService authService, JwtService jwtService, VerificationService verificationService,
         ILogger<Program> logger)
     {
         try
         {
             var user = await authService.ValidateUserAsync(request.Email, request.Password);
 
+            if (!user.Verified)
+            {
+                if (verificationService.VerificationInProgress(user.Email))
+                    return Results.BadRequest(new { error = "Check your inbox for a verification email. If there isn't one, try logging in again in 15 minutes." });
+
+                await verificationService.SendVerificationEmail(user.Email);
+                
+                return Results.BadRequest(new { error = "Email is unverified. Verification email has been sent." });
+            }
+            
             var token = await jwtService.GenerateToken(user);
 
             return Results.Ok(new
@@ -131,7 +137,8 @@ public static class AuthEndpoints
     {
         var verification = verificationService.VerifyToken(token);
 
-        if (verification == null) return Results.BadRequest(new { error = "Token invalid or expired" });
+        if (verification == null)
+            return Results.LocalRedirect("/expired");
 
         var user = await userService.GetUserByEmailAsync(verification.Email);
 
@@ -141,28 +148,6 @@ public static class AuthEndpoints
 
         await userService.UpdateUserAsync(user);
 
-        return Results.Ok(new { message = "Verified successfully" });
-    }
-
-    private static async Task<IResult> ResendVerification(ClaimsPrincipal user, UserService userService,
-        VerificationService verificationService)
-    {
-        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
-            return Results.BadRequest(new { error = "Invalid user identifier in token" });
-
-        var userInfo = await userService.GetUserAsync(userId);
-
-        if (userInfo == null) return Results.NotFound();
-
-        if (userInfo.Verified) return Results.BadRequest(new { error = "Verified already" });
-
-        if (verificationService.VerificationInProgress(userInfo.Email))
-            return Results.BadRequest(new { error = "Email already sent. Try again in 15 minutes." });
-
-        await verificationService.SendVerificationEmail(userInfo.Email);
-
-        return Results.Ok();
+        return Results.LocalRedirect("/verified");
     }
 }

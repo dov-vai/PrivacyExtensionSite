@@ -32,7 +32,14 @@ export function LoginForm() {
                 body: JSON.stringify({email: email, password: password}),
             });
 
-            if (!response.ok) throw new Error('Invalid credentials. Please try again.');
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Invalid credentials. Please try again.')
+                } else {
+                  const data = await response.json();
+                  throw new Error(data.error);
+                }
+            }
 
             const data = await response.json();
 
@@ -44,7 +51,7 @@ export function LoginForm() {
             if (err instanceof Error) {
                 setError(err.message);
             } else {
-                setError('Invalid credentials. Please try again.');
+                setError('Unknown error occured. Please try again.');
             }
             setIsLoading(false);
         }
