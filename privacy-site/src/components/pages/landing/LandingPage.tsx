@@ -5,14 +5,14 @@ import {Check, Download, Eye, Globe, Lock, MessageCircleWarning, Shield, ShieldC
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {API_HOST, PRODUCT_NAME} from "@/lib/common.ts";
 import {useEffect, useState} from "react";
-import {Link} from "react-router";
+import {Link, useNavigate} from "react-router";
 
 import {UserInfo} from "@/components/pages/profile/UserInfo.tsx";
 
 export function LandingPage() {
     const [scrollPosition, setScrollPosition] = useState(0);
     const [user, setUser] = useState<UserInfo | null>(null);
-
+    const navigate = useNavigate();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -367,7 +367,12 @@ export function LandingPage() {
                             </CardContent>
                             <CardFooter>
                                 <Button
-                                    className="cursor-pointer w-full bg-gradient-to-r from-[#0ea5e9] to-[#2dd4bf]">Purchase</Button>
+                                    className="cursor-pointer w-full bg-gradient-to-r from-[#0ea5e9] to-[#2dd4bf]"
+                                    onClick={() => {
+                                        navigate("checkout")
+                                    }}>
+                                    Purchase
+                                </Button>
                             </CardFooter>
                         </Card>
                     </div>

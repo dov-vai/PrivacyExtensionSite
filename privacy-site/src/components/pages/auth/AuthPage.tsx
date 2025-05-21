@@ -8,10 +8,20 @@ export default function AuthPage() {
     const location = useLocation();
     const [currentTab, setCurrentTab] = useState('login');
     const navigate = useNavigate();
+    const [redirectTo, setRedirectTo] = useState(location.state?.from?.pathname || null);
 
     useEffect(() => {
         setCurrentTab(location.pathname === '/auth/register' ? 'register' : 'login');
     }, [location])
+
+    const handleTabChange = (tab: string) => {
+        console.log(redirectTo);
+        if (tab === 'login') {
+            navigate("/auth/login", {state: {from: {pathname: redirectTo}}});
+        } else {
+            navigate("/auth/register", {state: {from: {pathname: redirectTo}}});
+        }
+    };
 
     return (
         <div className="w-full min-h-screen bg-[#0f172a] text-[#f8fafc] font-sans p-8">
@@ -28,14 +38,14 @@ export default function AuthPage() {
                         <TabsTrigger
                             value="login"
                             className="text-[#cbd5e1] cursor-pointer data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#0ea5e9] data-[state=active]:to-[#2dd4bf] data-[state=active]:text-white"
-                            onClick={() => navigate("/auth/login")}
+                            onClick={() => handleTabChange('login')}
                         >
                             Login
                         </TabsTrigger>
                         <TabsTrigger
                             value="register"
                             className="text-[#cbd5e1] cursor-pointer data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#0ea5e9] data-[state=active]:to-[#2dd4bf] data-[state=active]:text-white"
-                            onClick={() => navigate("/auth/register")}
+                            onClick={() => handleTabChange('register')}
                         >
                             Register
                         </TabsTrigger>
@@ -45,10 +55,6 @@ export default function AuthPage() {
                         <Route
                             path="register"
                             element={<RegisterForm/>}
-                        />
-                        <Route
-                            path="login/:registered?"
-                            element={<LoginForm/>}
                         />
                         <Route
                             path="*"

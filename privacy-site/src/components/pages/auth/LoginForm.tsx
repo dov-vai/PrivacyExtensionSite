@@ -6,16 +6,19 @@ import {Label} from '@/components/ui/label';
 import {Alert, AlertDescription} from '@/components/ui/alert';
 import {AlertTriangle, Eye, EyeOff, Lock, Mail, MoveLeft, User} from 'lucide-react';
 import {API_HOST} from "@/lib/common.ts";
-import {Link, useNavigate, useParams} from "react-router";
+import {Link, useLocation, useNavigate} from "react-router";
 
 export function LoginForm() {
-    const {registered} = useParams();
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const redirectTo = location.state?.from?.pathname || '/profile';
+    const message = location.state?.message || '';
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -35,7 +38,7 @@ export function LoginForm() {
 
             localStorage.setItem("token", data.token);
             setIsLoading(false);
-            navigate('/profile');
+            navigate(redirectTo, {replace: true});
 
         } catch (err: unknown) {
             if (err instanceof Error) {
@@ -66,11 +69,10 @@ export function LoginForm() {
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {registered && (
+                    {message && (
                         <Alert className="bg-green-500/10 text-green-500 border border-green-500/30">
                             <User className="h-4 w-4"/>
-                            <AlertDescription className="text-[#cbd5e1]">Account registered successfully. Please sign
-                                in.</AlertDescription>
+                            <AlertDescription className="text-[#cbd5e1]">{message}</AlertDescription>
                         </Alert>
                     )}
 

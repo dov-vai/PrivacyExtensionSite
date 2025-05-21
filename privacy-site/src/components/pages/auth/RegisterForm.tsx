@@ -37,7 +37,7 @@ export function RegisterForm() {
 
             if (!response.ok) throw new Error('Registration failed');
 
-            navigate('/auth/login/1');
+            navigate('/auth/login', {state: {message: "Account registered successfully. Please log in."}});
             setIsLoading(false);
         } catch (err: unknown) {
             if (err instanceof Error) {

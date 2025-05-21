@@ -72,6 +72,13 @@ export function ProfilePage() {
                                 className="bg-gradient-to-r from-[#0ea5e9]/10 to-[#2dd4bf]/10 text-[#0ea5e9] border-[#0ea5e9]/30">
                                 {user?.isPaid ? "Pro" : "Free"} Plan
                             </Badge>
+                            {user?.isPaid && (
+                                <Badge
+                                    className="bg-gradient-to-r from-[#0ea5e9]/10 to-[#2dd4bf]/10 text-[#0ea5e9] border-[#0ea5e9]/30">
+                                    Upgrade to Pro
+                                </Badge>
+                            )}
+
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-6">

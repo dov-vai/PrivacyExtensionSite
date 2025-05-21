@@ -2,7 +2,7 @@ import {useEffect, useState} from "react";
 import {Navigate} from "react-router";
 import {API_HOST} from "@/lib/common.ts";
 
-function CheckoutReturn(){
+function CheckoutReturn() {
     const [status, setStatus] = useState(null);
     const [customerEmail, setCustomerEmail] = useState('');
 
@@ -26,7 +26,7 @@ function CheckoutReturn(){
 
     if (status === 'open') {
         return (
-            <Navigate to="/checkout" />
+            <Navigate to="/checkout"/>
         )
     }
 
@@ -36,7 +36,7 @@ function CheckoutReturn(){
                 <p>
                     We appreciate your business! A confirmation email will be sent to {customerEmail}.
 
-                    If you have any questions, please email <a href="mailto:orders@example.com">orders@example.com</a>.
+                    If you have any questions, please email <a href="mailto:orders@example.com">falconfort@dov.lt</a>.
                 </p>
             </section>
         )
