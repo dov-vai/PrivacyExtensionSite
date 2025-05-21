@@ -1,4 +1,7 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using PrivacyApi.Data.Services;
+using Stripe;
 using Stripe.Checkout;
 
 namespace PrivacyApi.Endpoints;
@@ -17,16 +20,31 @@ public static class PaymentEndpoints
             .RequireAuthorization()
             .WithDescription("SessionStatus");
 
+        apiGroup.MapPost("stripe-webhook", StripeWebhook)
+            .WithDescription("StripeWebhook");
+
         return app;
     }
 
-    private static async Task<IResult> CreateCheckoutSession(IConfiguration configuration)
+    private static async Task<IResult> CreateCheckoutSession(ClaimsPrincipal user, UserService userService,
+        IConfiguration configuration)
     {
-        var apiUrl = configuration["WebsiteUrl"];
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            return Results.BadRequest(new { error = "Invalid user identifier in token" });
+
+        var userInfo = await userService.GetUserAsync(userId);
+
+        if (userInfo == null) return Results.BadRequest(new { error = "User not found using the identifier in token" });
+        ;
+
+        var websiteUrl = configuration["WebsiteUrl"];
 
         var options = new SessionCreateOptions
         {
             UiMode = "embedded",
+            CustomerEmail = userInfo.Email,
             LineItems = new List<SessionLineItemOptions>
             {
                 new()
@@ -36,7 +54,7 @@ public static class PaymentEndpoints
                 }
             },
             Mode = "payment",
-            ReturnUrl = apiUrl + "/return?session_id={CHECKOUT_SESSION_ID}"
+            ReturnUrl = websiteUrl + "/return?session_id={CHECKOUT_SESSION_ID}"
         };
 
         var service = new SessionService();
@@ -52,5 +70,38 @@ public static class PaymentEndpoints
         var session = await sessionService.GetAsync(sessionId);
 
         return Results.Json(new { status = session.Status, customer_email = session.CustomerDetails.Email });
+    }
+
+    private static async Task<IResult> StripeWebhook(HttpContext context, PaymentService paymentService,
+        IConfiguration configuration)
+    {
+        var json = await new StreamReader(context.Request.Body).ReadToEndAsync();
+
+        try
+        {
+            var stripeEvent = EventUtility.ConstructEvent(
+                json,
+                context.Request.Headers["Stripe-Signature"],
+                configuration["Stripe:WebhookSecret"]
+            );
+
+            if (
+                stripeEvent.Type == EventTypes.CheckoutSessionCompleted ||
+                stripeEvent.Type == EventTypes.CheckoutSessionAsyncPaymentSucceeded
+            )
+            {
+                var session = stripeEvent.Data.Object as Session;
+
+                if (session == null) return Results.BadRequest();
+
+                await paymentService.FulfillCheckout(session.Id);
+            }
+
+            return Results.Ok();
+        }
+        catch (StripeException)
+        {
+            return Results.BadRequest();
+        }
     }
 }

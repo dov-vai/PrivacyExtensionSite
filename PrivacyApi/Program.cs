@@ -128,6 +128,8 @@ builder.Services.AddSingleton<EmailService>();
 
 builder.Services.AddSingleton<VerificationService>();
 
+builder.Services.AddScoped<PaymentService>();
+
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 
